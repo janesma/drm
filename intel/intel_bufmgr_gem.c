@@ -2251,6 +2251,20 @@ do_exec2(drm_intel_bo *bo, int used, drm_intel_context *ctx,
 			    drm_intel_gem_compute_batch_space(bufmgr_gem->exec_bos,
 							      bufmgr_gem->exec_count),
 			    (unsigned int) bufmgr_gem->gtt_size);
+		} else {
+          int fh = open("/proc/self/cmdline", O_RDONLY);
+          char comm[1024] = {0}, *c = comm;
+          ssize_t bytes;
+          assert(fh > 0);
+          bytes = read(fh, comm, 1022); // minimum two \0 terminators.
+          assert (bytes != -1);
+          c = comm;
+          do {
+            c += strlen(c);
+            *c = ' ';
+          } while (*(c+1) != '\0');
+          fprintf(stderr, "gpu hang error(%d) encountered by program %s", ret, comm);
+
 		}
 	}
 	drm_intel_update_buffer_offsets2(bufmgr_gem);
