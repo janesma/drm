@@ -1630,9 +1630,7 @@ int
 drm_intel_gem_bo_map_unsynchronized(drm_intel_bo *bo)
 {
 	drm_intel_bufmgr_gem *bufmgr_gem = (drm_intel_bufmgr_gem *) bo->bufmgr;
-#ifdef HAVE_VALGRIND
 	drm_intel_bo_gem *bo_gem = (drm_intel_bo_gem *) bo;
-#endif
 	int ret;
 
 	/* If the CPU cache isn't coherent with the GTT, then use a
@@ -1641,8 +1639,12 @@ drm_intel_gem_bo_map_unsynchronized(drm_intel_bo *bo)
 	 * terms of drm_intel_bo_map vs drm_intel_gem_bo_map_gtt, so
 	 * we would potentially corrupt the buffer even when the user
 	 * does reasonable things.
+	 *
+	 * The caches are coherent on LLC platforms or snooping is enabled
+	 * for the BO.  The kernel enables snooping for non-scanout (reusable)
+	 * buffers on modern non-LLC systems.
 	 */
-	if (!bufmgr_gem->has_llc)
+	if (bufmgr_gem->gen < 6 || !bo_gem->reusable)
 		return drm_intel_gem_bo_map_gtt(bo);
 
 	pthread_mutex_lock(&bufmgr_gem->lock);
